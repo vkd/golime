@@ -1,0 +1,11 @@
+package test
+
+import (
+	"bytes"
+	"fmt"
+)
+
+func unusedOne() string {
+	fmt.Printf("format")
+	return "unused_one"
+}
