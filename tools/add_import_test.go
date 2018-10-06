@@ -3,7 +3,6 @@ package tools
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 
@@ -82,8 +81,6 @@ func addImportToFile(filename string, importName string, prevBs []byte) error { 
 	}
 
 	if n != int(res.Lpos) {
-		log.Printf("n: %v", n)
-		log.Printf("lpos: %v", res.Lpos)
 		return errors.New("wrong copied bytes")
 	}
 

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/cweill/gotests"
 	"github.com/pkg/errors"
@@ -16,7 +17,7 @@ import (
 )
 
 var (
-	version = "v0.0.0.2"
+	version = "v0.0.0.3"
 )
 
 type Cmd func(data []byte) (out interface{}, err error)
@@ -35,6 +36,20 @@ func Run(i int) bool {
 type Result map[string]interface{}
 
 var commands = map[string]Cmd{
+	// "godef": func(data []byte) (out interface{}, err error) {
+
+	// },
+	"gen": func(data []byte) (out interface{}, err error) {
+		log.Printf("args: %v", os.Args)
+		return Result{"gen": "ok"}, nil
+	},
+	"exit": func(data []byte) (out interface{}, err error) {
+		go func() {
+			time.Sleep(300 * time.Millisecond)
+			os.Exit(0)
+		}()
+		return Result{"time": "300ms"}, nil
+	},
 	"version": func(data []byte) (out interface{}, err error) {
 		return Result{"version": version}, nil
 	},
@@ -71,7 +86,7 @@ var commands = map[string]Cmd{
 		if err != nil {
 			return nil, errors.Wrap(err, "error on unmarshal data")
 		}
-		rgx, err := regexp.Compile("(?i)^(" + s.FunctionName + ")$")
+		rgx, err := regexp.Compile("^" + s.FunctionName + "$")
 		if err != nil {
 			return nil, errors.Wrap(err, "error on compile regexp")
 		}
@@ -129,6 +144,7 @@ type CmdArgs struct {
 
 var (
 	versionFlag = flag.Bool("v", false, "Version of golime")
+	isServer    = flag.Bool("s", false, "Start as server")
 )
 
 func main() {
@@ -138,25 +154,48 @@ func main() {
 		return
 	}
 
-	http.HandleFunc("/cmd", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		var cmd CmdArgs
-		err := json.NewDecoder(req.Body).Decode(&cmd)
-		if err != nil {
-			writeError(w, err)
-			return
-		}
-		out, err := commands[cmd.Cmd].Run(cmd.Data)
-		if err != nil {
-			writeError(w, err)
-			return
-		}
+	if *isServer {
+		http.HandleFunc("/cmd", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			var cmd CmdArgs
+			err := json.NewDecoder(req.Body).Decode(&cmd)
+			if err != nil {
+				writeError(w, err)
+				return
+			}
+			out, err := commands[cmd.Cmd].Run(cmd.Data)
+			if err != nil {
+				writeError(w, err)
+				return
+			}
 
-		json.NewEncoder(w).Encode(out)
-	}))
-	http.HandleFunc("/stop", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		os.Exit(0)
-	}))
-	log.Fatal(http.ListenAndServe(":8601", nil))
+			json.NewEncoder(w).Encode(out)
+		}))
+		http.HandleFunc("/stop", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			os.Exit(0)
+		}))
+		log.Fatal(http.ListenAndServe(":8601", nil))
+		return
+	}
+
+	if len(os.Args) < 2 {
+		log.Printf("Command is empty")
+		return
+	}
+
+	cmd := os.Args[1]
+	var data []byte
+
+	if len(os.Args) > 2 {
+		data = []byte(os.Args[2])
+	}
+
+	res, err := commands[cmd].Run(data)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		os.Exit(1)
+	}
+
+	json.NewEncoder(os.Stdout).Encode(res) // nolint: gas
 
 	// goroot := build.Default.GOROOT
 	// var count int

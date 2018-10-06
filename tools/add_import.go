@@ -42,17 +42,6 @@ func AddImport(filename string, importName string) (*AddImportResult, error) {
 
 	var res = &AddImportResult{}
 
-	// make border of old import block
-	if oldImport == nil {
-		// add next '\n' char
-		res.Lpos = int64(file.Name.End() + 1)
-		// add extra '\n' char on end
-		res.Rpos = int64(file.Name.End() - 1)
-	} else {
-		res.Lpos = int64(oldImport.Pos() - 1)
-		res.Rpos = int64(oldImport.End() - 1)
-	}
-
 	imp := addImportAst(importName, file)
 	ast.SortImports(fset, file)
 
@@ -63,6 +52,16 @@ func AddImport(filename string, importName string) (*AddImportResult, error) {
 	}
 
 	res.Text = bs.String()
+
+	// make border of old import block
+	if oldImport == nil {
+		res.Lpos = int64(file.Name.End())
+		res.Rpos = int64(file.Name.End())
+		res.Text = "\n" + res.Text + "\n"
+	} else {
+		res.Lpos = int64(oldImport.Pos() - 1)
+		res.Rpos = int64(oldImport.End() - 1)
+	}
 
 	return res, nil
 }

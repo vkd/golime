@@ -1,5 +1,5 @@
-package test
+package main
 
-func unusedEmpty() string {
-	return "unused_empty"
+func main() {
+
 }
