@@ -28,27 +28,24 @@ func AddComments(filename string) (out []AddCommentsResult, err error) {
 		switch d := file.Decls[i].(type) {
 		case *ast.FuncDecl:
 			out = appendDoc(out, d.Name, d.Doc, d.Pos())
-			// if !d.Name.IsExported() {
-			// 	continue
-			// }
-			// log.Printf("func: %v", d.Name.String())
-			// if d.Doc == nil || len(d.Doc.List) == 0 {
-			// 	log.Printf("add comment: %#v, %d", d.Doc, d.Pos())
-
-			// 	out = append(out, AddCommentsResult{
-			// 		Pos:  int(d.Pos()) - 1,
-			// 		Text: "// " + d.Name.String() + " - ...\n",
-			// 	})
-			// }
 		case *ast.GenDecl:
-			if d.Tok != token.TYPE {
+			if d.Tok == token.IMPORT {
 				continue
 			}
 			if len(d.Specs) == 1 {
-				if s, ok := d.Specs[0].(*ast.TypeSpec); ok {
-					if docIsEmpty(d.Doc) {
-						out = appendDoc(out, s.Name, s.Doc, d.Pos())
+				if !docIsEmpty(d.Doc) {
+					continue
+				}
+				switch s := d.Specs[0].(type) {
+				case *ast.TypeSpec:
+					out = appendDoc(out, s.Name, s.Doc, d.Pos())
+				case *ast.ValueSpec:
+					if len(s.Names) != 1 {
+						continue
 					}
+					out = appendDoc(out, s.Names[0], s.Doc, d.Pos())
+					// default:
+					// 	log.Printf("Unknown spec: %T", s)
 				}
 				continue
 			}
