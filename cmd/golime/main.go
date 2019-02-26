@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	version = "v0.0.0.3"
+	version = "v0.0.0.4"
 )
 
 type Cmd func(data []byte) (out interface{}, err error)
@@ -59,6 +59,20 @@ var commands = map[string]Cmd{
 			return nil, err
 		}
 		return Result{"imports": imports}, nil
+	},
+	"add_comments": func(data []byte) (out interface{}, err error) {
+		var s struct {
+			File string `json:"file"`
+		}
+		err = json.Unmarshal(data, &s)
+		if err != nil {
+			return nil, errors.Wrap(err, "error on unmarshal data")
+		}
+		out, err = tools.AddComments(s.File)
+		if err != nil {
+			return nil, errors.Wrap(err, "error on add comments")
+		}
+		return Result{"status": "ok", "result": out}, nil
 	},
 	"add_import": func(data []byte) (out interface{}, err error) {
 		type st struct {
@@ -173,6 +187,7 @@ func main() {
 		http.HandleFunc("/stop", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			os.Exit(0)
 		}))
+		log.Printf("Server is started on: %s", ":8601")
 		log.Fatal(http.ListenAndServe(":8601", nil))
 		return
 	}
