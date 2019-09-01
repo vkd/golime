@@ -5,7 +5,9 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"sort"
+	"unicode/utf8"
 
 	"github.com/pkg/errors"
 )
@@ -15,7 +17,7 @@ type AddCommentsResult struct {
 	Text string `json:"text"`
 }
 
-func AddComments(filename string) (out []AddCommentsResult, err error) {
+func AddComments(filename string, isRuneCount bool) (out []AddCommentsResult, err error) {
 	// log.Printf("add comments on: %v", filename)
 
 	fset := token.NewFileSet()
@@ -63,6 +65,16 @@ func AddComments(filename string) (out []AddCommentsResult, err error) {
 	}
 
 	sort.Slice(out, func(i, j int) bool { return out[i].Pos > out[j].Pos })
+
+	if isRuneCount {
+		bs, err := ioutil.ReadFile(filename)
+		if err != nil {
+			return nil, errors.Wrap(err, "error on read file")
+		}
+		for i, p := range out {
+			out[i].Pos = utf8.RuneCount(bs[:p.Pos])
+		}
+	}
 
 	// log.Printf("out: %v", out)
 	// log.Printf("----------------------OK----------------------")

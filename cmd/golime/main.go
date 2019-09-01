@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	version = "v0.0.0.4"
+	version = "v0.0.0.5"
 )
 
 type Cmd func(data []byte) (out interface{}, err error)
@@ -63,12 +63,14 @@ var commands = map[string]Cmd{
 	"add_comments": func(data []byte) (out interface{}, err error) {
 		var s struct {
 			File string `json:"file"`
+
+			IsRuneCount bool `json:"isRuneCount"`
 		}
 		err = json.Unmarshal(data, &s)
 		if err != nil {
 			return nil, errors.Wrap(err, "error on unmarshal data")
 		}
-		out, err = tools.AddComments(s.File)
+		out, err = tools.AddComments(s.File, s.IsRuneCount)
 		if err != nil {
 			return nil, errors.Wrap(err, "error on add comments")
 		}
